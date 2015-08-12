@@ -18,26 +18,14 @@ repositories {
     mavenCentral()
 }
 
-configurations {
-    all*.exclude group: 'commons-logging', module: 'commons-logging'
-    all*.exclude group: 'commons-logging', module: 'commons-logging-api'
-    all*.exclude group: 'org.codehaus.groovy', module: 'groovy'
-}
-
 dependencies {
 
-    def groovyDependency = "org.codehaus.groovy:groovy-all:2.3.4"
-    compile groovyDependency
-
-//    if (isAtLeastGradleVersion(1, 6)) {
-//        compile groovyDependency
-//    } else {
-//        groovy groovyDependency
-//    }
+    compile("org.codehaus.groovy:groovy-all:2.3.4")
 
     compile ('junit:junit:4.12') { transitive = false }
     //compile ('net.sf.jpdfunit:jpdfunit:1.2')
     compile ('org.hamcrest:hamcrest-all:1.3')
+    compile ('commons-logging:commons-logging:1.2')
 
     compile ("org.gebish:geb-core:${gebVersion}") { transitive = false }
     compile ("org.gebish:geb-waiting:${gebVersion}") { transitive = false }
@@ -52,7 +40,7 @@ dependencies {
     compile ("org.seleniumhq.selenium:selenium-remote-driver:${seleniumVersion}")
 
     def slf4jVersion = '1.6.4'
-    compile "org.slf4j:slf4j-log4j12:$slf4jVersion"
+    compile ("org.slf4j:slf4j-log4j12:$slf4jVersion")
     compile ("log4j:log4j:1.2.16")
 
 }
@@ -70,9 +58,21 @@ compileTestGroovy {
     options.forkOptions.jvmArgs =['-Xmx512m'] // Set maximum memory to 512MB
 }
 
-boolean isAtLeastGradleVersion(int major, int minor) {
-    Matcher matcher = gradle.gradleVersion =~ /(\d+)\.(\d+).*/
-    if (!matcher.matches()) {
-        return false
+test {
+    // Use UTC time zone for consistent date/time behavior
+    jvmArgs '-Duser.timezone=UTC'
+    jvmArgs '-XX:MaxPermSize=256M'
+    jvmArgs '-Xms512m'
+    jvmArgs '-Xmx1536m'
+
+    systemProperties 'geb.build.adapter': 'config.GebConfigurationAdapter'
+    systemProperties 'geb.build.reportsDir': "${reporting.baseDir}/geb"
+    //have to specifically call those out here as the normal way of passing with the '-D' switch
+    //doesn't pass the value all the way to geb. explicitly setting this here again passes the variable
+    //content all the way through  (as of geb 0.7.2 - prob due to forked execution)
+    systemProperties 'geb.env' : System.properties['geb.env']
+    systemProperties 'geb.driver' : System.properties['geb.driver']
+    if (System.properties['webdriver.chrome.driver']) {
+        systemProperties 'webdriver.chrome.driver' : System.properties['webdriver.chrome.driver']
     }
 }
